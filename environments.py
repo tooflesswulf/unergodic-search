@@ -4,69 +4,6 @@ import gym
 import util
 
 
-class Target(util.MapObject):
-    def __init__(self, name: str, x0: Tuple[int], map: np.ndarray, scale: int):
-        super(Target, self).__init__(name, x0, map, scale)
-        self.active = True
-
-    def load_render(self):
-        scale = self.scale
-        icon = 255 * np.ones((scale, scale, 3))
-        icon[util.circ_mask(scale)] = (255, 0, 0)
-
-        from pygame import surfarray
-        self.icon = surfarray.make_surface(icon)
-
-    def collect(self):
-        self.active = False
-
-        # hide the icon
-        icon = 255 * np.ones((1, 1, 3))
-        from pygame import surfarray
-        self.icon = surfarray.make_surface(icon)
-
-
-class Agent(util.MapObject):
-    def __init__(self, name: str, x0: Tuple[int], map: np.ndarray, scale: int):
-        super(Agent, self).__init__(name, x0, map, scale)
-
-        self.ksize = 25
-        self.k0 = np.array([self.ksize // 2, self.ksize // 2])
-        self.sensing_kernel = np.zeros((self.ksize, self.ksize))
-        self.sensing_kernel[util.circ_mask(self.ksize)] = 1
-
-    def load_render(self):
-        import pygame
-
-        img = pygame.image.load('robot-icon.png')
-        img = pygame.transform.scale(img, (32, 32))
-
-        sense_size = self.scale * self.ksize
-        sense = 255 * np.ones((sense_size, sense_size, 4))
-        sense[..., 3] = 0
-        sense[util.circ_mask(self.scale * self.ksize)] = (0, 0, 255, 64)
-        sense = util.make_surface_rgba(sense)
-
-        shape = np.amax([img.get_size(), sense.get_size()], axis=0)
-        self.icon = pygame.Surface(shape, pygame.SRCALPHA)
-        self.icon.blit(sense, (shape - sense.get_size()) // 2)
-        self.icon.blit(img, (shape - img.get_size()) // 2)
-
-    def sense(self, targets: List[Target]):
-        n_collect = 0
-        for targ in targets:
-            rel_pos = targ.get_position() - self.get_position()
-
-            if np.any(np.abs(rel_pos) > self.ksize // 2):
-                continue
-            x, y = self.k0 + rel_pos
-            if random.random() < self.sensing_kernel[x, y]:
-                n_collect += 1
-                targ.collect()
-
-        return n_collect
-
-
 class SimpleMap(gym.Env):
     metadata = {
         "render_modes": ["human", "rgb_array"],
@@ -74,7 +11,7 @@ class SimpleMap(gym.Env):
         "px_scale": 5,
     }
 
-    def __init__(self, num_agent: int, num_target: int, map: np.ndarray, prior: np.ndarray, render_mode: Optional[str] = None):
+    def __init__(self, num_agent: int, num_target: int, map: np.ndarray, prior: np.ndarray, render_mode: Optional[str] = None, max_iter=None):
         """Construction for SimpleMap environment
 
         Args:
@@ -96,8 +33,9 @@ class SimpleMap(gym.Env):
         self.num_agent = num_agent
         self.prior = prior / np.sum(prior)
 
-        self.targets: List[Target] = []
-        self.agents: List[Agent] = []
+        self.targets: List[util.Target] = []
+        self.agents: List[util.Agent] = []
+        self.iter = 0
 
         self.observation_space = gym.spaces.Box(low=np.zeros(prior.shape), high=np.ones(prior.shape))
         # 5 movements: N/W/S/E/none; 2 sensing options: on/off
@@ -105,10 +43,11 @@ class SimpleMap(gym.Env):
             gym.spaces.Tuple((gym.spaces.Discrete(5), gym.spaces.Discrete(2))) for _ in range(self.num_agent)
         ])
 
+        self.max_iter = max_iter
         self.gamma = 1
         self.sensing_cost = 0
 
-    def set_agents(self, agents: List[Agent]):
+    def set_agents(self, agents: List[util.Agent]):
         self.agents = agents
 
     def step(self, action: List[Tuple[int]]) -> Tuple[np.ndarray, float, bool, bool, dict]:
@@ -133,25 +72,24 @@ class SimpleMap(gym.Env):
                 reward -= self.sensing_cost
                 reward += agent.sense(self.targets)
 
-        # Calculate sensing for all agents?
-        #   0- free space
-        #   1- obstacle
-        #   2- another agent
+        self.iter += 1
+        trunc = (self.max_iter is not None) and (self.iter > self.max_iter)
 
         # termination condition
         terminate = not np.any([targ.active for targ in self.targets])
-        return (self.map, reward, terminate, False, {})
+        return (self.map, reward, terminate, trunc, {})
 
     def reset(self):
         self.objects = []
         self.targets = []
+        self.iter = 0
 
         distr = np.ravel(self.prior)
         targets = np.random.choice(np.arange(len(distr)), replace=False, p=distr, size=self.num_target)
         targets = np.array(np.unravel_index(targets, self.prior.shape)).T
 
         for i, targ_loc in enumerate(targets):
-            ti = Target(f't{i}', targ_loc, self.map, self.metadata['px_scale'])
+            ti = util.Target(f't{i}', targ_loc, self.map, self.metadata['px_scale'])
             self.targets.append(ti)
             self.objects.append(ti)
         self.objects.extend(self.agents)
@@ -206,7 +144,7 @@ class SimpleMap(gym.Env):
         except ImportError:
             raise ImportError("pygame is not installed, run `pip install pygame`")
 
-        w, h = map.shape
+        w, h = self.map.shape
         scale = self.metadata['px_scale']
         self.screen.blit(self.map_surface, (0, 0))
 
@@ -229,10 +167,6 @@ class SimpleMap(gym.Env):
 
 
 if __name__ == '__main__':
-
-    # print(util.circ_mask(9))
-    # exit(0)
-
     dims = (200, 200)
 
     map = np.zeros(dims)
@@ -248,7 +182,7 @@ if __name__ == '__main__':
     prior[map != 0] = 0
 
     env = SimpleMap(1, 50, map, prior, render_mode='human')
-    aa = Agent('r0', (100, 100), env.map, env.metadata['px_scale'])
+    aa = util.Agent('r0', (100, 100), env.map, env.metadata['px_scale'])
     env.set_agents([aa])
     env.reset()
     env.render()
