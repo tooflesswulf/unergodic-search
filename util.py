@@ -101,7 +101,7 @@ class Target(MapObject):
 
 
 class Agent(MapObject):
-    def __init__(self, name: str, x0: Tuple[int], map: np.ndarray, scale: int):
+    def __init__(self, name: str, x0: Tuple[int], map: np.ndarray, scale: int=0):
         super(Agent, self).__init__(name, x0, map, scale)
 
         self.ksize = 25
@@ -129,6 +129,8 @@ class Agent(MapObject):
     def sense(self, targets: List[Target]):
         n_collect = 0
         for targ in targets:
+            if not targ.active:
+                continue
             rel_pos = targ.get_position() - self.get_position()
 
             if np.any(np.abs(rel_pos) > self.ksize // 2):

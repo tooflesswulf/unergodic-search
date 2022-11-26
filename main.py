@@ -1,4 +1,4 @@
-from environments import SimpleMap
+from simple_map import SimpleMap
 from util import Agent
 import numpy as np
 
@@ -17,9 +17,18 @@ if __name__ == '__main__':
     env.reset()
     env.render()
 
+    cnt = 0
+
     import random
     while True:
         dr = [(random.randint(0, 3), 1)]
         for _ in range(3):
             env.step(dr)
+
+        cnt += 1
+        if cnt > 1000:
+            break
+        # env.render()
+
+    while True:
         env.render()
