@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 import numpy as np
 import gym
-import util
+import gym_foo.util as util
 
 
 class ExpectationMap(gym.Env):
@@ -108,6 +108,7 @@ class ExpectationMap(gym.Env):
         self.target_distr = np.copy(self.prior)
         for agent in self.agents:
             agent.reset()
+
 
 if __name__ == '__main__':
     dims = (200, 200)

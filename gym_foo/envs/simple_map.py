@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 import numpy as np
 import gym
-import util
+import gym_foo.util as util
 
 
 class SimpleMap(gym.Env):
@@ -13,7 +13,8 @@ class SimpleMap(gym.Env):
 
     def __init__(self, num_agent: int, num_target: int,
                  map: np.ndarray, prior: np.ndarray,
-                 render_mode: Optional[str] = None, max_iter=None):
+                 render_mode: Optional[str] = None,
+                 max_iter=None, gamma: float = 1, sensing_cost: float = 0):
         """Construction for SimpleMap environment
 
         Args:
