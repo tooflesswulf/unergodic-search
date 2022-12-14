@@ -46,5 +46,5 @@ if __name__ == '__main__':
         if i % 10 == 0:
             vv = algo.evaluate()
             print(f'Iteration {i+1} done! Saving model.')
-            print(vv['episode_reward_mean'])
+            print(vv)
             algo.save(f'model_checkpoints/epoch{i}')

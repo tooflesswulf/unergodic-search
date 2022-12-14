@@ -38,7 +38,7 @@ def make_surface_rgba(array):
 
 class MapObject:
     name: str
-    icon: np.ndarray | None = None
+    icon: np.ndarray = None
 
     def __init__(self, name: str, x0: Tuple[int], map: np.ndarray, scale: int):
         self.name = name
