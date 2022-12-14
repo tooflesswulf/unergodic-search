@@ -18,7 +18,7 @@ class ExpectationMapAuto(gym.Env):
         num_agent = config.get('num_agent', 1)
         num_target = config.get('num_target', 1)
         map_id = config.get('map_id', None)
-        max_iter = config.get('max_iter', 10_000)
+        max_iter = config.get('max_iter', 2_000)
         sensing_cost = config.get('sensing_cost', 5e-2)
 
         super(ExpectationMapAuto, self).__init__()
@@ -130,8 +130,9 @@ class ExpectationMapAuto(gym.Env):
 
         self.iter += 1
         trunc = (self.max_iter is not None) and (self.iter > self.max_iter)
+        found_all = np.sum(self.target_distr) < .5 / self.num_target
 
-        terminate = False
+        terminate = trunc and found_all
         return self._obs(), reward, terminate, {}
 
 
@@ -168,8 +169,23 @@ class ExpectationMapAuto(gym.Env):
 
         return np.array(observations)
 
-# ema = ExpectationMapAuto(num_agent=5, num_target=10, map_id=7)
+# ema = ExpectationMapAuto({'num_agent':5, 'num_target':10, 'map_id':7})
 # ema.reset()
+
+# print(np.sum(ema.prior))
+# print(np.sum(ema.target_distr))
+# rew = ema.step([(3,1), (2,1), (2,1), (3,1), (0,1)])
+
+# print(np.sum(ema.prior))
+# print(np.sum(ema.target_distr))
+# rew = ema.step([(3,1), (2,1), (2,1), (3,1), (0,1)])
+# print(np.sum(ema.prior))
+# print(np.sum(ema.target_distr))
+# rew = ema.step([(3,1), (2,1), (2,1), (3,1), (0,1)])
+# print(np.sum(ema.prior))
+# print(np.sum(ema.target_distr))
+# rew = ema.step([(3,1), (2,1), (2,1), (3,1), (0,1)])
+
 # rew = ema.step([(3,0), (2,0), (2,0), (3,0), (0,0)])[1]
 # rew = ema.step([(3,1), (2,1), (2,1), (3,1), (0,1)])[1]
 
