@@ -3,9 +3,10 @@ import gym_foo
 from ray.rllib.algorithms.ppo import PPO
 
 from ray.tune.registry import register_env
-from gym_foo.envs import ExpectationMapAuto
+from gym_foo.envs import ExpectationMapAuto, SimpleMapAuto
 
 register_env('701-expectation-env-v1', lambda cfg: ExpectationMapAuto(cfg))
+register_env('701-simple-env-v1', lambda cfg: SimpleMapAuto(cfg))
 
 # Configure the algorithm.
 config = {
@@ -47,4 +48,4 @@ if __name__ == '__main__':
             vv = algo.evaluate()
             print(f'Iteration {i+1} done! Saving model.')
             print(vv)
-            algo.save(f'model_checkpoints/epoch{i}')
+            algo.save(f'model_checkpoints/simple_env_v1')
