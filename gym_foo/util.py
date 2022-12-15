@@ -80,6 +80,7 @@ class Target(MapObject):
     def __init__(self, name: str, x0: Tuple[int], map: np.ndarray, scale: int):
         super(Target, self).__init__(name, x0, map, scale)
         self.active = True
+        self.rendered = False
 
     def load_render(self):
         scale = self.scale
@@ -88,15 +89,17 @@ class Target(MapObject):
 
         from pygame import surfarray
         self.icon = surfarray.make_surface(icon)
+        self.rendered = True
 
     def collect(self):
         self.active = False
 
-        # hide the icon
-        icon = 255 * np.ones((self.scale, self.scale, 3))
-        icon[circ_mask(self.scale)] = (0, 255, 0)
-        from pygame import surfarray
-        self.icon = surfarray.make_surface(icon)
+        if self.rendered:
+            # hide the icon
+            icon = 255 * np.ones((self.scale, self.scale, 3))
+            icon[circ_mask(self.scale)] = (0, 255, 0)
+            from pygame import surfarray
+            self.icon = surfarray.make_surface(icon)
 
 
 class Agent(MapObject):

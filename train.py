@@ -11,7 +11,7 @@ register_env('701-simple-env-v1', lambda cfg: SimpleMapAuto(cfg))
 # Configure the algorithm.
 config = {
     # Environment (RLlib understands openAI gym registered strings).
-    "env": "701-expectation-env-v1",
+    "env": "701-simple-env-v1",
     'env_config': {'num_agent': 5, 'num_target': 20, 'sensing_cost': 1e-3},
     # Use 2 environment workers (aka "rollout workers") that parallelly
     # collect samples from their own environment clone(s).
