@@ -80,7 +80,7 @@ class SimpleMapAuto(gym.Env):
         self.prior = prior
         self.target_distr = np.copy(self.prior)
         distr = np.ravel(self.prior)
-        targets = np.random.choice(np.arange(len(distr)), replace=False, p=distr, size=self.num_target)
+        targets = np.random.choice(np.arange(len(distr)), replace=True, p=distr, size=self.num_target)
         targets = np.array(np.unravel_index(targets, self.prior.shape)).T
         for i, targ_loc in enumerate(targets):
             ti = util.Target(f't{i}', targ_loc, self.map, 0)
