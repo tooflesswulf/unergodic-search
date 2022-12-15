@@ -57,6 +57,16 @@ class SimpleMap(gym.Env):
 
     def set_targets(self, targets):
         '''takes list of target positions.'''
+        self.targets = []
+        self.objects = []
+        for i, targ_loc in enumerate(targets):
+            ti = util.Target(f't{i}', targ_loc, self.map, self.metadata['px_scale'])
+            self.targets.append(ti)
+            self.objects.append(ti)
+        self.objects.extend(self.agents)
+        if self.render_mode is not None:
+            self.load_render()
+
 
     def _obs(self):
         agent_locs_map = np.zeros(self.map.shape)
@@ -121,7 +131,7 @@ class SimpleMap(gym.Env):
         # termination condition
         terminate = not np.any([targ.active for targ in self.targets])
 
-        return (self._obs(), reward, terminate, trunc, {})
+        return (self._obs(), reward, terminate, {})
 
     def reset(self):
         self.objects = []
