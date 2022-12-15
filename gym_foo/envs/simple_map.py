@@ -129,7 +129,7 @@ class SimpleMap(gym.Env):
         trunc = (self.max_iter is not None) and (self.iter > self.max_iter)
 
         # termination condition
-        terminate = not np.any([targ.active for targ in self.targets])
+        terminate = not np.any([targ.active for targ in self.targets]) or trunc
 
         return (self._obs(), reward, terminate, {})
 
