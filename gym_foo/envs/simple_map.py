@@ -8,7 +8,7 @@ class SimpleMap(gym.Env):
     metadata = {
         "render_modes": ["human", "rgb_array"],
         "render_fps": 30,
-        "px_scale": 5,
+        "px_scale": 15,
     }
 
     def __init__(self, num_agent: int, num_target: int,
@@ -55,6 +55,42 @@ class SimpleMap(gym.Env):
     def set_agents(self, agents: List[util.Agent]):
         self.agents = agents
 
+    def set_targets(self, targets):
+        '''takes list of target positions.'''
+
+    def _obs(self):
+        agent_locs_map = np.zeros(self.map.shape)
+        for i in range(self.num_agent):
+            xi, yi = self.agents[i].get_position()
+            agent_locs_map[xi, yi] = 1
+
+        # observation channels:
+        #   0: prior distr
+        #   1: map & walls
+        #   2: current position
+        #   3: neighbors
+        #   4: previous trajectory
+        #   5: neighbor previous trajectory
+
+        observations = []
+        for i in range(self.num_agent):
+            xi, yi = self.agents[i].get_position()
+            observation = np.zeros((*self.map.shape, 6))
+            observation[..., 0] = self.prior
+            observation[..., 1] = self.map
+            observation[xi, yi, 2] = 1
+            observation[..., 3] = agent_locs_map - observation[..., 2]
+            observation[..., 4] = self.agent_trajectories[..., i]
+            if np.sum(observation[..., 4]) > 0:
+                observation[..., 4] = observation[..., 4] / np.sum(observation[..., 4])
+            observation[..., 5] = np.sum(self.agent_trajectories, axis=-1) - self.agent_trajectories[..., i]
+            if np.sum(observation[..., 5]) > 0:
+                observation[..., 5] = observation[..., 5] / np.sum(observation[..., 5])
+
+            observations.append(observation)
+
+        return np.array(observations)
+
     def step(self, action: List[Tuple[int]]) -> Tuple[np.ndarray, float, bool, bool, dict]:
         """Each agent takes 1 step and potentially senses the environment. 
 
@@ -85,35 +121,7 @@ class SimpleMap(gym.Env):
         # termination condition
         terminate = not np.any([targ.active for targ in self.targets])
 
-        agent_locs_map = np.zeros(self.map.shape)
-        for i in range(self.num_agent):
-            xi, yi = self.agents[i].get_position()
-            agent_locs_map[xi, yi] = 1
-
-        # observation channels:
-        #   0: prior distr
-        #   1: map & walls
-        #   2: current position
-        #   3: neighbors
-        #   4: previous trajectory
-        #   5: neighbor previous trajectory
-
-        observations = []
-        for i in range(self.num_agent):
-            xi, yi = self.agents[i].get_position()
-            observation = np.zeros((*self.map.shape, 6))
-            observation[..., 0] = self.prior
-            observation[..., 1] = self.map
-            observation[xi, yi, 2] = 1
-            observation[..., 3] = agent_locs_map - observation[..., 2]
-            observation[..., 4] = self.agent_trajectories[..., i]
-            observation[..., 4] = observation[..., 4] / np.sum(observation[..., 4])
-            observation[..., 5] = np.sum(self.agent_trajectories, axis=-1) - self.agent_trajectories[..., i]
-            observation[..., 5] = observation[..., 5] / np.sum(observation[..., 5])
-
-            observations.append(observation)
-
-        return (np.array(observations), reward, terminate, trunc, {})
+        return (self._obs(), reward, terminate, trunc, {})
 
     def reset(self):
         self.objects = []
@@ -135,6 +143,8 @@ class SimpleMap(gym.Env):
 
         if self.render_mode is not None:
             self.load_render()
+
+        return self._obs()
 
     def load_render(self):
         box = np.array([(0, 0), (0, 1), (1, 1), (1, 0)])
@@ -166,7 +176,7 @@ class SimpleMap(gym.Env):
         for obj in self.objects:
             obj.load_render()
 
-    def render(self):
+    def render(self, mode):
         if self.render_mode is None:
             gym.logger.warn(
                 "You are calling render method without specifying any render mode. "

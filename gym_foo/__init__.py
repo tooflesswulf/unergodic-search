@@ -10,6 +10,11 @@ register(
 )
 
 register(
+    id='701-simple-env-v1',
+    entry_point='gym_foo.envs:SimpleMapAuto',
+)
+
+register(
     id='701-expectation-env-v1',
     entry_point='gym_foo.envs:ExpectationMapAuto',
 )

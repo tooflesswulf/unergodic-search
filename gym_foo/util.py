@@ -2,7 +2,6 @@ from typing import Tuple, List
 import numpy as np
 import random
 
-
 def circ_mask(r: int):
     out = np.zeros((r, r), dtype=bool)
     Y, X = np.ogrid[:r, :r]
@@ -104,15 +103,21 @@ class Agent(MapObject):
     def __init__(self, name: str, x0: Tuple[int], map: np.ndarray, scale: int=0):
         super(Agent, self).__init__(name, x0, map, scale)
 
-        self.ksize = 25
+        self.ksize = 3
         self.k0 = np.array([self.ksize // 2, self.ksize // 2])
-        self.sensing_kernel = np.zeros((self.ksize, self.ksize))
-        self.sensing_kernel[circ_mask(self.ksize)] = .01
+        # self.sensing_kernel = np.zeros((self.ksize, self.ksize))
+        # self.sensing_kernel[circ_mask(self.ksize)] = .01
+        self.sensing_kernel = np.array([[.2, .2, .2], [.2, .5, .2], [.2, .2, .2]])
 
     def load_render(self):
         import pygame
+        import pkg_resources
 
-        img = pygame.image.load('robot-icon.png')
+        resource_package = __name__
+        resource_path = 'robot-icon.png'
+        img_path = pkg_resources.resource_filename(resource_package, resource_path)
+
+        img = pygame.image.load(img_path)
         img = pygame.transform.scale(img, (32, 32))
 
         sense_size = self.scale * self.ksize
